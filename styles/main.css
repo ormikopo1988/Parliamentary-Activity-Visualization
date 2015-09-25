@@ -1,0 +1,7 @@
+body {
+	background: url(http://meikopoulos.gr/wp-content/uploads/2013/01/profil-b.jpg) no-repeat center center fixed; 
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+}

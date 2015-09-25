@@ -1,0 +1,362 @@
+<!doctype html>
+<html class="no-js">
+	<head>
+		<meta http-equiv="content-type" content="charset=UTF-8"/>
+		<title>Κοινοβουλευτική Δραστηριότητα Αλέξανδρου Μεϊκόπουλου</title>
+		<style>
+			dd,dt {
+				float:left;
+				margin:0;
+				padding:5px;
+				clear:both;
+				display:block;
+				width:200px;
+			}
+			dt {
+				background:#ddd;
+			}
+			time {
+				color: white;
+				font-weight: bold;
+			}
+			.header {
+				margin: 0 auto;
+				display: block;
+				height: 40px;
+				width: 100%;
+				text-align: left;
+				position: fixed;
+				top: 0;
+				left: 0;
+				background-color: red;
+				z-index: 100;
+			}
+			#title {
+				position: absolute;
+				left: 10px;
+				top: 9px;
+				font-size: 20px;
+				font-weight: bold;
+				color: white;
+				text-align: center;
+			}
+			.modal {
+				display:    none;
+				position:   fixed;
+				z-index:    1000;
+				top:        0;
+				left:       0;
+				height:     100%;
+				width:      100%;
+				background: rgba( 255, 255, 255, .8 ) 
+				url('http://bradsknutson.com/wp-content/uploads/2013/04/page-loader.gif') 
+				50% 50% 
+				no-repeat;
+			}
+			/* When the body has the loading class, we turn
+			the scrollbar off with overflow:hidden */
+			body.loading {
+				overflow: hidden;   
+			}
+			/* Anytime the body has the loading class, our
+			modal element will be visible */
+			body.loading .modal {
+				display: block;
+			}
+			.footer {
+				text-align: center;
+				border-top: 1px solid white;
+				color: white;
+				font-size: 15px;
+				font-weight: bold;
+			}
+			.fb-like-box, .fb-like-box span, .fb-like-box span iframe[style] { width: 100% !important; }
+		</style>
+		<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width">
+		<link rel="stylesheet" href="http://83.212.107.26/meikopoulosgr/bootstrap/dist/css/bootstrap.css" />
+		<link rel="stylesheet" href="http://83.212.107.26/meikopoulosgr/styles/main.css">
+	</head>
+	<body onload="ajaxCall();">
+		<div id="fb-root"></div>
+		<script>
+			(function(d, s, id) {
+				var js, fjs = d.getElementsByTagName(s)[0];
+				if (d.getElementById(id)) return;
+				js = d.createElement(s); 
+				js.id = id;
+				js.src = "//connect.facebook.net/el_GR/sdk.js#xfbml=1&appId=197807020430151&version=v2.0";
+				fjs.parentNode.insertBefore(js, fjs);
+			}(document, 'script', 'facebook-jssdk'));
+		</script>
+		<script>
+			!function(d,s,id) {
+				var js, fjs=d.getElementsByTagName(s)[0], p=/^http:/.test(d.location)?'http':'https';
+				if (!d.getElementById(id)) {
+					js = d.createElement(s);
+					js.id = id;
+					js.src = p+"://platform.twitter.com/widgets.js";
+					fjs.parentNode.insertBefore(js,fjs);
+				}
+			}(document,"script","twitter-wjs");
+		</script>
+		<div class="container">
+			<nav class="navbar navbar-default" role="navigation">
+			  <!-- Brand and toggle get grouped for better mobile display -->
+			  <div class="navbar-header">
+				<a class="navbar-brand" href="http://meikopoulos.gr" target="blank">Δραστηριότητα Αλέξανδρου Μεϊκόπουλου</a><!-- is linking to our root view -->
+			  </div>
+			</nav>
+			<script src="socket.io/socket.io.js"></script>
+			<script src="http://code.jquery.com/jquery-latest.min.js"></script>
+			<script src="http://listjs.com/no-cdn/list.js"></script>
+			<script src="http://listjs.com/no-cdn/list.pagination.js"></script>
+			<script>
+				var str;
+				$body = $("body");
+				$(document).ready(function() {		
+					//Required for loading
+					$.ajax();							
+				});
+				$(document).ajaxStart(function(){
+					$body.addClass("loading"); 
+				});
+				$(document).ajaxStop(function(){
+					$body.delay(5000).removeClass("loading");
+				});
+				google.load("visualization", "1", {packages:["corechart"]});
+				// create a new websocket
+				var socket = io.connect("/");
+				// on message received we print all the data inside the #container div
+				socket.on('notification', function (data) {
+					console.log("Notification 1: " + data);
+					var usersList = "<ul class='list-group'>";
+					$.each(data.users, function(index,user){
+						usersList += "<li class='list-group-item'><span class='badge'>" + "Σύνολο: " + "<b>" + user.count + "</b>" + "</span>" + "<b>" + user.name + "</b>" + "</li>";
+					});
+					usersList += "</ul>";
+					$('#container').html(usersList);
+					//$('#container').hide();
+					$('time').html('Τελευταία Ενημέρωση: ' + data.time);
+					drawChart(data.users);
+				});
+				
+				socket.on('notification2', function (data) {
+					console.log("Notification 2: " + data);
+					var postsList = "<ul class='list list-group'>";
+					$.each(data.posts, function(index,post){
+						if (post.count != 0) {
+							postsList += "<li class='list-group-item'><span class='badge'>" + "Σύνολο: " + "<b>" + post.count + "</b>" + "</span>" + "<b>" + post.name + "</b>" + "</li>";
+						}
+					});
+					postsList += "</ul><ul class='pagination'></ul>";
+					$('#container2').html(postsList);
+					$('#con2').show();
+					//pagination();
+					drawChart2(data.posts);
+				});
+				
+				function ajaxCall() {
+					var xmlHttp = null;
+					xmlHttp = new XMLHttpRequest();
+					xmlHttp.open( "GET", "./p", false );
+					xmlHttp.send( null );
+					return xmlHttp.responseText;
+				}
+			  
+				function drawChart(val) {
+					var data = new google.visualization.DataTable();
+					data.addColumn('string','Κατηγορία');
+					data.addColumn('number','Σύνολο');
+					
+					for (var i=0; i<val.length; i++) {
+						data.addRows([
+							[val[i].name, val[i].count]
+						]);
+					}
+
+					var options = {
+						title: 'Δραστηριότητα Ανά Κατηγορία',
+						is3D: true
+					};
+
+					var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+
+					chart.draw(data, options);
+					
+					/*google.visualization.events.addListener(chart, 'select', selectHandler);
+					
+					// The selection handler.
+					// Loop through all items in the selection
+					function selectHandler() {
+						var selection = chart.getSelection();
+						var message = '';
+						for (var i = 0; i < selection.length; i++) {
+							var item = selection[i];
+							console.log(item);
+							str = data.getFormattedValue(item.row, 0);
+							console.log(str);
+							if(str == "Ερωτήσεις" || str == "Αναφορές") {
+							}
+						}
+					}*/
+				}
+				
+				function drawChart2(val) {
+					var data = new google.visualization.DataTable();
+					data.addColumn('string','Κατηγορία');
+					data.addColumn('number','Σύνολο');
+					
+					for (var i=0; i<val.length; i++) {
+						data.addRows([
+							[val[i].name, val[i].count]
+						]);
+					}
+
+					var options = {
+						title: 'Δραστηριότητα ανά υπουργείο'
+					};
+
+					var chart = new google.visualization.ColumnChart(document.getElementById('piechart2'));
+
+					chart.draw(data, options);
+				}
+			</script>
+			<center>
+				<time></time><span style="color: white; font-weight: bold;"> (+ 02:00 Ώρες)</span>
+			</center>
+			<div class="page-header">
+				<h1>Δραστηριότητα <small>Τοπική και Ομιλίες στη Βουλή</small></h1>
+			</div>
+			<div class="row">
+				<div class="col-md-12">
+					<div id="results"></div>
+				</div>
+			</div>
+			<div class="row">
+				<center>
+					<button type="button" class="btn btn-default" id="prev-button" onclick="previousPage()">Previous</button>
+					<button type="button" class="btn btn-default" id="next-button" onclick="nextPage()">Next</button>
+				</center>
+			</div>
+			<div class="page-header">
+				<h1>Δραστηριότητα <small>Ανά Κατηγορία</small></h1>
+			</div>
+			<div class="row">
+				<div class="col-md-6" id="content">
+					<div id="container"></div>
+				</div>
+				<div class="col-md-6" id="piechart" style="height: 400px;"></div>
+			</div>
+			<div id="con2" class="page-header">
+				<h1>Δραστηριότητα <small>Ανά Υπουργείο</small></h1>
+			</div>
+			<div class="row">
+				<div class="col-md-6">
+					<div id="container2"></div>
+				</div>
+				<div class="col-md-6" id="piechart2" style="height: 400px;"></div>
+			</div>
+			<div class="page-header">
+				<h1>Δραστηριότητα <small>Ανά Κοινωνικό Δίκτυο</small></h1>
+			</div>
+			<div class="row">
+				<div class="col-md-6">
+					<a class="twitter-timeline"  href="https://twitter.com/A_Meikopoulos" data-widget-id="550681814034300929">Tweets by @A_Meikopoulos</a>
+				</div>
+				<div class="col-md-6">
+					<div style="background-color:white;">
+						<div class="fb-like-box" data-href="https://www.facebook.com/AlexandrosMeikopoulos" data-height="520" data-colorscheme="light" data-show-faces="true" data-header="true" data-stream="true" data-show-border="true" data-style="background-color: white;"></div>
+					</div>
+				</div>
+			</div><br>
+			<div class="row">
+				<center>
+					<div class="alert alert-success" role="alert">Για περισσότερες λεπτομέρειες και αναλυτική περιγραφή των παραπάνω στοιχείων πατήστε <a href="http://www.hellenicparliament.gr/Koinovouleftikos-Elenchos/Mesa-Koinovouleutikou-Elegxou?type=&SessionPeriod=&partyId=&mpId=09292115-c3ed-4668-b3a8-4cf66ec0fa34&ministry=&datefrom=&dateto=" target="blank" class="alert-link">ΕΔΩ!</a></div>
+				</center>
+			</div>
+			<br>
+			<div class="footer">
+				<p><br> Copyright &copy; 2014 - Designed and Developed by <a href="http://inf-server.inf.uth.gr/~ormikopo/" target="_blank" style="color: orange;">Orestis Meikopoulos</a></p>
+			</div>
+		</div>
+		<div class="modal"><!-- Place at bottom of page --></div>
+    </body>
+	<script>
+		var pid2, playlistId, nextPageToken, prevPageToken, pageToken;
+		function pagination() {
+			var monkeyList = new List('container2', {
+			  valueNames: ['name'],
+			  page: 5,
+			  plugins: [ ListPagination({}) ] 
+			});
+		}
+		
+		$.get(
+		   "https://www.googleapis.com/youtube/v3/channels",{
+		   part : 'contentDetails', 
+		   id : 'UCENgOYIyr4HST4hHdgX3AbA',
+		   key: 'AIzaSyBvJFVY3P3bwTflFzlBIU6pdPQjTqGpsNQ'},
+		   function(data) {
+			  $.each( data.items, function( i, item ) {
+				  pid2 = item.contentDetails.relatedPlaylists.uploads;
+				  getVids(pid2);
+			  });
+		  }
+		);
+		
+		//Get Videos
+		function getVids(pid, pageToken){
+			$.get(
+				"https://www.googleapis.com/youtube/v3/playlistItems",{
+				part : 'snippet',
+				playlistId : pid,
+				pageToken : pageToken,
+				key: 'AIzaSyBvJFVY3P3bwTflFzlBIU6pdPQjTqGpsNQ'},
+				function(data) {
+					console.log(data);
+					//var results;
+					var itemsList = "<ul class='list list-group'>";
+					$.each(data.items, function(i,item){
+						//results = item.snippet.resourceId.videoId;
+						//var iframe = document.createElement("iframe");
+						//var iframe_url = "https://www.youtube.com/embed/" + results + "?autoplay=0&autohide=1";
+						//iframe.setAttribute("src",iframe_url);
+						var date = new Date(item.snippet.publishedAt);
+						itemsList += "<li class='list-group-item'><span class='badge'><b>Δημοσιεύτηκε: " + date.toLocaleDateString() + "</b>" + "</span>" + "<b><a href='https://www.youtube.com/watch?v="+item.snippet.resourceId.videoId+"' target='blank'>" + item.snippet.title + "</a></b>" + "</li>";
+					});
+					itemsList += "</ul>";
+					if (pageToken) {
+						data.pageToken = pageToken;
+					}
+					nextPageToken = data.nextPageToken;
+					var nextVis = nextPageToken ? 'visible' : 'hidden';
+					$('#next-button').css('visibility', nextVis);
+					prevPageToken = data.prevPageToken;
+					var prevVis = prevPageToken ? 'visible' : 'hidden';
+					$('#prev-button').css('visibility', prevVis);
+					$('#results').html(itemsList);
+				}				
+			);
+		}		
+		function nextPage() {
+			getVids(pid2, nextPageToken);
+		}
+
+		// Retrieve the previous page of videos in the playlist.
+		function previousPage() {
+			getVids(pid2, prevPageToken);
+		}
+		$('#con2').hide();
+	</script>
+	<script>
+		(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+		ga('create', 'UA-58774190-1', 'auto');
+		ga('send', 'pageview');
+	</script>
+</html>
